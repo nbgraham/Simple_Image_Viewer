@@ -115,8 +115,11 @@ public class Main {
 				if( jfc.showOpenDialog( frame ) == JFileChooser.APPROVE_OPTION ) {
 					pictureFiles.clear();
 					pictureFiles.addAll(getPicturesInDirectory(jfc.getSelectedFile().getAbsolutePath()));
-					currentFileIndex.set(0, new Integer(0));
-					updateImage();
+					if (pictureFiles.size() > 0)
+					{
+						currentFileIndex.set(0, new Integer(0));
+						updateImage();
+					}
 				}
 			}
 		});
@@ -147,24 +150,30 @@ public class Main {
 	
 	public static void nextImage()
 	{
-		Integer nextValue = currentFileIndex.get(0) + 1;
-		if (nextValue.compareTo(new Integer(pictureFiles.size())) >= 0)
+		if (pictureFiles.size() > 0)
 		{
-			nextValue = new Integer(0);
+			Integer nextValue = currentFileIndex.get(0) + 1;
+			if (nextValue.compareTo(new Integer(pictureFiles.size())) >= 0)
+			{
+				nextValue = new Integer(0);
+			}
+			currentFileIndex.set(0, nextValue);
+			updateImage();
 		}
-		currentFileIndex.set(0, nextValue);
-		updateImage();
 	}
 	
 	public static void prevImage()
 	{
-		Integer prevValue = currentFileIndex.get(0) - 1;
-		if (prevValue.compareTo(new Integer(0)) < 0)
+		if (pictureFiles.size() > 0)
 		{
-			prevValue = new Integer(pictureFiles.size()-1);
+			Integer prevValue = currentFileIndex.get(0) - 1;
+			if (prevValue.compareTo(new Integer(0)) < 0)
+			{
+				prevValue = new Integer(pictureFiles.size()-1);
+			}
+			currentFileIndex.set(0, prevValue);
+			updateImage();
 		}
-		currentFileIndex.set(0, prevValue);
-		updateImage();
 	}
 	
 	public static void updateImage()
