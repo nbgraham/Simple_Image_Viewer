@@ -1,17 +1,25 @@
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
+import java.awt.Image;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ComponentListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import javax.imageio.ImageIO;
 import javax.swing.AbstractAction;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -60,26 +68,38 @@ public class Main {
 	}
 	
 	final static JFrame frame = new JFrame();
-	final static JLabel pictureLabel = new JLabel();
+	final static JLabel pictureLabel = new JLabel(new ImageIcon());
 	final static List<File> pictureFiles = new ArrayList<File>();
 	final static SpinnerListModel picturesList = new SpinnerListModel();
 
 	public static void main( final String[] args ) {
-
+		
 		//When the when is closed, exit the application
 		frame.setDefaultCloseOperation( JFrame.EXIT_ON_CLOSE );
 		//initial size of window
 		frame.setSize( 600, 500 );
 		//give the window a title
 		frame.setTitle( "Image Viewer" );
-	
-		/*
-		final ImageIcon icon = new ImageIcon( "/Users/Nicholas/Pictures/Picture1.png" );
-		icon.setImage( icon.getImage().getScaledInstance(
-				30, 30, Image.SCALE_FAST ) );
-		pictureLabel.setIcon( icon );
-		*/
+		
+		
+		frame.addComponentListener(new ComponentAdapter() {
+			
+			@Override
+			public void componentResized(ComponentEvent e) {
+				// TODO Auto-generated method stub
+				frame.resize(e.getComponent().getSize());
+
+				double diffH = Math.abs(e.getComponent().getSize().getHeight() - pictureLabel.getSize().getHeight() - 120);
+				double diffW = Math.abs(e.getComponent().getSize().getWidth() - pictureLabel.getSize().getWidth() - 120);
 				
+				double diff = diffH < diffW ? diffH : diffW;
+				System.out.println(diff);
+				if (diff>25)
+				{
+					updateImage();
+				}
+			}			
+		});
 		final JButton nextButton = new JButton(new NextPictureAction());
 		final JButton prevButton = new JButton(new PrevPictureAction());
 		
@@ -87,6 +107,11 @@ public class Main {
 		buttonPanel.setLayout(new FlowLayout());
 		buttonPanel.add(prevButton);
 		buttonPanel.add(nextButton);
+		
+		final JPanel imagePanel = new JPanel();
+		pictureLabel.setHorizontalAlignment(JLabel.CENTER);
+		pictureLabel.setVerticalAlignment(JLabel.CENTER);
+		imagePanel.add(pictureLabel);
 		
 		final JSpinner pictureSpinner = new JSpinner(picturesList);
 		pictureSpinner.addChangeListener(new ChangeListener() {
@@ -134,7 +159,7 @@ public class Main {
 		
 		frame.getContentPane().setLayout( new BorderLayout());
 		//add the various components to the window's contents;
-		frame.getContentPane().add(pictureLabel, BorderLayout.CENTER );
+		frame.getContentPane().add(imagePanel, BorderLayout.CENTER );
 		frame.getContentPane().add(buttonPanel, BorderLayout.PAGE_END);
 		frame.getContentPane().add(pictureSpinner, BorderLayout.PAGE_START);
 
@@ -171,6 +196,7 @@ public class Main {
 				if( jfc.showOpenDialog( frame ) == JFileChooser.APPROVE_OPTION ) {
 					pictureFiles.clear();
 					pictureFiles.addAll(getPicturesInDirectory(jfc.getSelectedFile().getAbsolutePath()));
+					if (pictureFiles.isEmpty()) pictureFiles.add(new File("empty"));
 					picturesList.setList(pictureFiles);
 					updateImage();
 				}
@@ -207,27 +233,60 @@ public class Main {
 	
 	public static void nextImage()
 	{
-		if (pictureFiles.size() > 0)
+		File next = (File) picturesList.getNextValue();
+		if (next != null)
 		{
-			picturesList.setValue(picturesList.getNextValue());
+			picturesList.setValue(next);
 			updateImage();
 		}
 	}
 	
 	public static void prevImage()
 	{
-		if (pictureFiles.size() > 0)
+		File prev = (File) picturesList.getPreviousValue();
+		if (prev != null)
 		{
-			picturesList.setValue(picturesList.getPreviousValue());
+			picturesList.setValue(prev);
 			updateImage();
 		}
 	}
 	
 	public static void updateImage()
 	{
-		if (pictureFiles.size() > 0)
+		if (pictureFiles.size() > 0 && !pictureFiles.get(0).toString().equals("empty"))
 		{
-			pictureLabel.setIcon(new ImageIcon(((File)picturesList.getValue()).getAbsolutePath()));
+			BufferedImage bimg;
+			try {
+				bimg = ImageIO.read((File) picturesList.getValue());
+				int imgWidth = bimg.getWidth();
+				int imgHeight = bimg.getHeight();
+				
+				Rectangle r = pictureLabel.getParent().getBounds();
+				int frameWidth = r.width;
+				int frameHeight = r.height;
+				
+				double resizeRatio;
+				if (imgWidth > frameWidth)
+				{
+					resizeRatio = (double) frameWidth/imgWidth;
+					imgWidth *= resizeRatio;
+					imgHeight *= resizeRatio;
+				}
+				if (imgHeight > frameHeight)
+				{
+					resizeRatio = (double) frameHeight/imgHeight;
+					imgWidth *= resizeRatio;
+					imgHeight *= resizeRatio;
+				}
+				
+				pictureLabel.setIcon(new ImageIcon(((File)picturesList.getValue()).getAbsolutePath()));
+				ImageIcon icon = (ImageIcon) pictureLabel.getIcon();
+				icon.setImage( icon.getImage().getScaledInstance(
+						imgWidth, imgHeight, Image.SCALE_FAST ) );
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 	}
 }
